@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"c:\\\\Users\\\\jrami\\\\pide-ya\")",
+      "Bash(dir \"c:\\\\Users\\\\jrami\\\\pide-ya\\\\app\")",
+      "Bash(dir \"c:\\\\Users\\\\jrami\\\\pide-ya\\\\components\")",
+      "Bash(dir \"c:\\\\Users\\\\jrami\\\\pide-ya\\\\prisma\")"
+    ]
+  }
+}
