@@ -1,3 +1,4 @@
+import { formatCOP } from "@/lib/currency"
 import { db } from "@/lib/db"
 
 const STATUS_LABEL: Record<string, string> = {
@@ -69,7 +70,7 @@ export default async function AdminOrdersPage() {
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-zinc-50">
                 <p className="text-xs text-zinc-400">{new Date(o.createdAt).toLocaleDateString("es-BO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                <p className="font-bold text-sm text-zinc-900">Bs. {o.total.toFixed(2)}</p>
+                <p className="font-bold text-sm text-zinc-900">{formatCOP(o.total)}</p>
               </div>
             </div>
           ))}

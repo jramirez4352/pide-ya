@@ -51,16 +51,37 @@ model Category {
 }
 
 model MenuItem {
-  id          String   @id @default(cuid())
-  category    Category @relation(fields: [categoryId], references: [id])
+  id          String          @id @default(cuid())
+  category    Category        @relation(fields: [categoryId], references: [id])
   categoryId  String
   name        String
   description String?
   price       Float
   imageUrl    String?
-  available   Boolean  @default(true)
-  order       Int      @default(0)
+  available   Boolean         @default(true)
+  order       Int             @default(0)
   orderItems  OrderItem[]
+  modifierGroups ModifierGroup[]
+}
+
+model ModifierGroup {
+  id          String           @id @default(cuid())
+  menuItem    MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  name        String           // e.g. "Término", "Extras", "Salsas"
+  required    Boolean          @default(false)
+  multiSelect Boolean          @default(false)
+  order       Int              @default(0)
+  options     ModifierOption[]
+}
+
+model ModifierOption {
+  id              String        @id @default(cuid())
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  modifierGroupId String
+  name            String        // e.g. "Extra queso", "Sin cebolla"
+  price           Float         @default(0)
+  order           Int           @default(0)
 }
 
 model PaymentMethod {
@@ -75,20 +96,20 @@ model PaymentMethod {
 }
 
 model Order {
-  id           String     @id @default(cuid())
-  customer     User       @relation(fields: [customerId], references: [id])
+  id           String      @id @default(cuid())
+  customer     User        @relation(fields: [customerId], references: [id])
   customerId   String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
   restaurantId String
   items        OrderItem[]
-  status       String     @default("PENDING")
+  status       String      @default("PENDING")
   deliveryType String
   address      String?
   notes        String?
   total        Float
   proofUrl     String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -100,6 +121,8 @@ model OrderItem {
   name       String
   price      Float
   quantity   Int
+  comment    String?
+  modifiers  String?  // JSON: [{groupName, optionName, price}]
 }
 
 model PasswordResetToken {

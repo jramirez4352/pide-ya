@@ -1,3 +1,4 @@
+import { formatCOP } from "@/lib/currency"
 import { getMyOrders } from "@/app/actions/orders"
 import Link from "next/link"
 
@@ -53,7 +54,7 @@ export default async function OrdersPage() {
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-xs text-zinc-400">{new Date(order.createdAt).toLocaleDateString("es-BO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                <p className="font-bold text-sm">Bs. {order.total.toFixed(2)}</p>
+                <p className="font-bold text-sm">{formatCOP(order.total)}</p>
               </div>
             </div>
           ))}

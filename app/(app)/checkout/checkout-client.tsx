@@ -1,5 +1,6 @@
 "use client"
 
+import { formatCOP } from "@/lib/currency"
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -95,12 +96,12 @@ export function CheckoutClient({ userId }: { userId: string }) {
         {cart.map((item) => (
           <div key={item.id} className="flex items-center justify-between px-4 py-3">
             <span className="text-sm text-zinc-700">{item.quantity}× {item.name}</span>
-            <span className="text-sm font-medium">Bs. {(item.price * item.quantity).toFixed(2)}</span>
+            <span className="text-sm font-medium">{formatCOP(item.price * item.quantity)}</span>
           </div>
         ))}
         <div className="flex items-center justify-between px-4 py-3">
           <span className="font-semibold text-zinc-900">Total</span>
-          <span className="font-bold text-lg">Bs. {total.toFixed(2)}</span>
+          <span className="font-bold text-lg">{formatCOP(total)}</span>
         </div>
       </div>
 
@@ -168,7 +169,7 @@ export function CheckoutClient({ userId }: { userId: string }) {
               {selectedPayment.details && (
                 <p className="text-sm text-zinc-600 whitespace-pre-wrap">{selectedPayment.details}</p>
               )}
-              <p className="text-xs text-zinc-400">Monto a pagar: <span className="font-bold text-zinc-900">Bs. {total.toFixed(2)}</span></p>
+              <p className="text-xs text-zinc-400">Monto a pagar: <span className="font-bold text-zinc-900">{formatCOP(total)}</span></p>
             </div>
           )}
         </div>

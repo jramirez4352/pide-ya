@@ -13,6 +13,12 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
           items: {
             where: { available: true },
             orderBy: { order: "asc" },
+            include: {
+              modifierGroups: {
+                orderBy: { order: "asc" },
+                include: { options: { orderBy: { order: "asc" } } },
+              },
+            },
           },
         },
       },

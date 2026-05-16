@@ -95,6 +95,54 @@ export async function deletePaymentMethod(id: string) {
   revalidatePath("/dashboard/payments")
 }
 
+// ─── Modificadores ────────────────────────────────────────────────────────────
+
+export async function addModifierGroup(formData: FormData): Promise<void> {
+  const restaurant = await getRestaurant()
+  if (!restaurant) return
+  const menuItemId = formData.get("menuItemId") as string
+  const name = (formData.get("name") as string)?.trim()
+  if (!menuItemId || !name) return
+  const item = await db.menuItem.findFirst({ where: { id: menuItemId, category: { restaurantId: restaurant.id } } })
+  if (!item) return
+  await db.modifierGroup.create({
+    data: {
+      menuItemId,
+      name,
+      required: formData.get("required") === "on",
+      multiSelect: formData.get("multiSelect") === "on",
+    },
+  })
+  revalidatePath("/dashboard/menu")
+}
+
+export async function deleteModifierGroup(id: string): Promise<void> {
+  const restaurant = await getRestaurant()
+  if (!restaurant) return
+  await db.modifierGroup.deleteMany({ where: { id, menuItem: { category: { restaurantId: restaurant.id } } } })
+  revalidatePath("/dashboard/menu")
+}
+
+export async function addModifierOption(formData: FormData): Promise<void> {
+  const restaurant = await getRestaurant()
+  if (!restaurant) return
+  const modifierGroupId = formData.get("modifierGroupId") as string
+  const name = (formData.get("name") as string)?.trim()
+  const price = parseFloat((formData.get("price") as string) || "0") || 0
+  if (!modifierGroupId || !name) return
+  const group = await db.modifierGroup.findFirst({ where: { id: modifierGroupId, menuItem: { category: { restaurantId: restaurant.id } } } })
+  if (!group) return
+  await db.modifierOption.create({ data: { modifierGroupId, name, price } })
+  revalidatePath("/dashboard/menu")
+}
+
+export async function deleteModifierOption(id: string): Promise<void> {
+  const restaurant = await getRestaurant()
+  if (!restaurant) return
+  await db.modifierOption.deleteMany({ where: { id, modifierGroup: { menuItem: { category: { restaurantId: restaurant.id } } } } })
+  revalidatePath("/dashboard/menu")
+}
+
 // ─── Pedidos ──────────────────────────────────────────────────────────────────
 
 export async function getRestaurantOrders() {

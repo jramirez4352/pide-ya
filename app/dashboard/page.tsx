@@ -1,3 +1,4 @@
+import { formatCOP } from "@/lib/currency"
 import { getRestaurantOrders, updateOrderStatus } from "@/app/actions/restaurant"
 
 const STATUS_LABEL: Record<string, string> = {
@@ -75,7 +76,7 @@ function OrderCard({ order, showHistory = false }: { order: Awaited<ReturnType<t
 
       <div className="space-y-1">
         {order.items.map((item) => (
-          <p key={item.id} className="text-xs text-zinc-600">{item.quantity}× {item.name} — Bs. {(item.price * item.quantity).toFixed(2)}</p>
+          <p key={item.id} className="text-xs text-zinc-600">{item.quantity}× {item.name} — {formatCOP(item.price * item.quantity)}</p>
         ))}
       </div>
 
@@ -85,7 +86,7 @@ function OrderCard({ order, showHistory = false }: { order: Awaited<ReturnType<t
       {order.notes && <p className="text-xs text-zinc-400 italic">"{order.notes}"</p>}
 
       <div className="flex items-center justify-between">
-        <p className="font-bold text-sm">Bs. {order.total.toFixed(2)}</p>
+        <p className="font-bold text-sm">{formatCOP(order.total)}</p>
         <p className="text-xs text-zinc-400">{new Date(order.createdAt).toLocaleTimeString("es-BO", { hour: "2-digit", minute: "2-digit" })}</p>
       </div>
 
