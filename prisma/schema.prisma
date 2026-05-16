@@ -18,6 +18,7 @@ model User {
 
   restaurant          Restaurant?
   orders              Order[]
+  savedAddresses      SavedAddress[]
   passwordResetTokens PasswordResetToken[]
 }
 
@@ -123,6 +124,16 @@ model OrderItem {
   quantity   Int
   comment    String?
   modifiers  String?  // JSON: [{groupName, optionName, price}]
+}
+
+model SavedAddress {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  label     String   // "Casa", "Trabajo", etc.
+  address   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model PasswordResetToken {

@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-5 pb-24">{children}</main>
       <CartIndicator />
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-10 safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-10">
         <div className="max-w-lg mx-auto flex">
           <Link href="/" className="flex-1 flex flex-col items-center py-3 gap-1 group">
             <span className="text-xl">🏠</span>
@@ -38,7 +38,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <Link href="/orders" className="flex-1 flex flex-col items-center py-3 gap-1 group">
             <span className="text-xl">🛍️</span>
-            <span className="text-xs font-medium text-zinc-400 group-hover:text-orange-500 transition-colors">Mis pedidos</span>
+            <span className="text-xs font-medium text-zinc-400 group-hover:text-orange-500 transition-colors">Pedidos</span>
+          </Link>
+          <Link href="/profile" className="flex-1 flex flex-col items-center py-3 gap-1 group">
+            <span className="text-xl">👤</span>
+            <span className="text-xs font-medium text-zinc-400 group-hover:text-orange-500 transition-colors">Perfil</span>
           </Link>
         </div>
       </nav>

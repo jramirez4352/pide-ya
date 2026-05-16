@@ -4,7 +4,9 @@ import { formatCOP } from "@/lib/currency"
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { placeOrder } from "@/app/actions/orders"
+import { getSavedAddresses } from "@/app/actions/profile"
 
+type SavedAddress = { id: string; label: string; address: string; isDefault: boolean }
 type CartItem = {
   cartId?: string; id: string; name: string; price: number
   quantity: number; comment?: string; modifiers?: { optionName: string; price: number }[]
@@ -32,6 +34,7 @@ export function CheckoutClient({ userId }: { userId: string }) {
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [showEditCart, setShowEditCart] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -49,6 +52,11 @@ export function CheckoutClient({ userId }: { userId: string }) {
     if (parsedPM.length > 0) setSelectedPayment(parsedPM[0])
     if (parsedDT.length > 0) setDeliveryType(parsedDT[0])
     setLoaded(true)
+    getSavedAddresses().then(addrs => {
+      setSavedAddresses(addrs)
+      const def = addrs.find(a => a.isDefault)
+      if (def) setAddress(def.address)
+    })
   }, [router])
 
   function handleProof(e: React.ChangeEvent<HTMLInputElement>) {
@@ -299,9 +307,31 @@ export function CheckoutClient({ userId }: { userId: string }) {
             ))}
           </div>
           {deliveryType === "DELIVERY" && (
-            <input value={address} onChange={e => setAddress(e.target.value)}
-              placeholder="Dirección, barrio, referencias..." required
-              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder:text-zinc-400" />
+            <div className="space-y-2">
+              {savedAddresses.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-zinc-400">Direcciones guardadas</p>
+                  {savedAddresses.map(a => (
+                    <button key={a.id} type="button" onClick={() => setAddress(a.address)}
+                      className={`w-full text-left rounded-2xl border-2 px-4 py-3 transition-all ${
+                        address === a.address ? "border-orange-400 bg-orange-50" : "border-zinc-200 bg-white"
+                      }`}>
+                      <div className="flex items-center gap-2">
+                        <span>{a.isDefault ? "⭐" : "📍"}</span>
+                        <div>
+                          <p className="font-bold text-sm text-zinc-900">{a.label}</p>
+                          <p className="text-xs text-zinc-500">{a.address}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <p className="text-xs text-zinc-400 font-medium">O escribe una dirección diferente:</p>
+                </div>
+              )}
+              <input value={address} onChange={e => setAddress(e.target.value)}
+                placeholder="Dirección, barrio, referencias..." required
+                className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder:text-zinc-400" />
+            </div>
           )}
         </div>
       )}
