@@ -1,113 +1,124 @@
 import { db } from "@/lib/db"
-import { revalidatePath } from "next/cache"
-
-async function approveRestaurant(id: string) {
-  "use server"
-  await db.restaurant.update({ where: { id }, data: { status: "APPROVED" } })
-  revalidatePath("/admin")
-}
-
-async function rejectRestaurant(id: string) {
-  "use server"
-  await db.restaurant.update({ where: { id }, data: { status: "REJECTED" } })
-  revalidatePath("/admin")
-}
+import Link from "next/link"
 
 export default async function AdminPage() {
-  const [pending, approved, rejected] = await Promise.all([
-    db.restaurant.findMany({ where: { status: "PENDING" }, include: { owner: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } }),
-    db.restaurant.findMany({ where: { status: "APPROVED" }, include: { owner: { select: { name: true, email: true } } }, orderBy: { name: "asc" } }),
-    db.restaurant.findMany({ where: { status: "REJECTED" }, include: { owner: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" } }),
+  const [
+    totalRestaurants,
+    pendingRestaurants,
+    approvedRestaurants,
+    totalUsers,
+    totalOrders,
+    recentOrders,
+    recentPending,
+  ] = await Promise.all([
+    db.restaurant.count(),
+    db.restaurant.count({ where: { status: "PENDING" } }),
+    db.restaurant.count({ where: { status: "APPROVED" } }),
+    db.user.count({ where: { role: "CUSTOMER" } }),
+    db.order.count(),
+    db.order.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        customer: { select: { name: true } },
+        restaurant: { select: { name: true } },
+      },
+    }),
+    db.restaurant.findMany({
+      where: { status: "PENDING" },
+      take: 3,
+      orderBy: { createdAt: "desc" },
+      include: { owner: { select: { name: true, email: true } } },
+    }),
   ])
 
+  const stats = [
+    { label: "Restaurantes activos", value: approvedRestaurants, icon: "🍽️", color: "bg-green-50 text-green-600", href: "/admin/restaurants" },
+    { label: "Solicitudes pendientes", value: pendingRestaurants, icon: "⏳", color: "bg-orange-50 text-orange-600", href: "/admin/restaurants" },
+    { label: "Clientes registrados", value: totalUsers, icon: "👥", color: "bg-blue-50 text-blue-600", href: "/admin/users" },
+    { label: "Pedidos totales", value: totalOrders, icon: "🛍️", color: "bg-purple-50 text-purple-600", href: "/admin/orders" },
+  ]
+
+  const STATUS_LABEL: Record<string, string> = {
+    PENDING: "Pendiente", CONFIRMED: "Confirmado", PREPARING: "Preparando",
+    READY: "Listo", DELIVERED: "Entregado", CANCELLED: "Cancelado",
+  }
+  const STATUS_COLOR: Record<string, string> = {
+    PENDING: "bg-yellow-100 text-yellow-700", CONFIRMED: "bg-blue-100 text-blue-700",
+    PREPARING: "bg-orange-100 text-orange-700", READY: "bg-green-100 text-green-700",
+    DELIVERED: "bg-zinc-100 text-zinc-500", CANCELLED: "bg-red-100 text-red-500",
+  }
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-xl font-bold text-zinc-900">Panel de administración</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Panel de control</h1>
+        <p className="text-zinc-400 text-sm mt-0.5">Administra toda la plataforma desde aquí</p>
+      </div>
 
-      {/* Pendientes */}
-      <section>
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
-          Solicitudes pendientes ({pending.length})
-        </p>
-        {pending.length === 0 ? (
-          <p className="text-sm text-zinc-400">No hay solicitudes pendientes</p>
-        ) : (
-          <div className="space-y-3">
-            {pending.map((r) => (
-              <div key={r.id} className="bg-white rounded-2xl border border-yellow-200 p-4 space-y-3">
-                <div>
-                  <p className="font-semibold text-zinc-900">{r.name}</p>
-                  <p className="text-xs text-zinc-500">{r.address}</p>
-                  <p className="text-xs text-zinc-500">Tel: {r.phone}</p>
-                </div>
-                <div className="text-xs text-zinc-400 border-t border-zinc-100 pt-2">
-                  <p>Propietario: {r.owner.name}</p>
-                  <p>{r.owner.email}</p>
-                  {r.owner.phone && <p>{r.owner.phone}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <form action={approveRestaurant.bind(null, r.id)} className="flex-1">
-                    <button type="submit" className="w-full bg-green-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-green-700 transition-colors">
-                      Aprobar
-                    </button>
-                  </form>
-                  <form action={rejectRestaurant.bind(null, r.id)} className="flex-1">
-                    <button type="submit" className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl py-2 text-sm font-medium hover:bg-red-100 transition-colors">
-                      Rechazar
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s) => (
+          <Link key={s.label} href={s.href} className="bg-white rounded-3xl border border-zinc-100 p-4 shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-[0.98]">
+            <div className={`w-10 h-10 rounded-2xl ${s.color} flex items-center justify-center text-xl mb-3`}>{s.icon}</div>
+            <p className="text-2xl font-black text-zinc-900">{s.value}</p>
+            <p className="text-xs text-zinc-400 mt-0.5 leading-tight">{s.label}</p>
+          </Link>
+        ))}
+      </div>
+
+      {/* Solicitudes pendientes */}
+      {recentPending.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-zinc-900">Solicitudes pendientes</h2>
+            <Link href="/admin/restaurants" className="text-xs text-orange-500 font-semibold">Ver todas →</Link>
           </div>
-        )}
-      </section>
-
-      {/* Aprobados */}
-      <section>
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
-          Restaurantes activos ({approved.length})
-        </p>
-        {approved.length === 0 ? (
-          <p className="text-sm text-zinc-400">Ninguno aprobado aún</p>
-        ) : (
           <div className="space-y-2">
-            {approved.map((r) => (
-              <div key={r.id} className="bg-white rounded-xl border border-zinc-200 px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-zinc-900">{r.name}</p>
-                  <p className="text-xs text-zinc-400">{r.owner.email}</p>
+            {recentPending.map((r) => (
+              <div key={r.id} className="bg-white rounded-2xl border border-orange-100 p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-xl flex-shrink-0">🍴</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-zinc-900 text-sm">{r.name}</p>
+                  <p className="text-xs text-zinc-400 truncate">{r.owner.email}</p>
                 </div>
-                <form action={rejectRestaurant.bind(null, r.id)}>
-                  <button type="submit" className="text-xs text-red-400 hover:text-red-600">Suspender</button>
-                </form>
+                <Link href="/admin/restaurants" className="text-xs font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-xl">Revisar</Link>
               </div>
             ))}
           </div>
-        )}
-      </section>
-
-      {/* Rechazados */}
-      {rejected.length > 0 && (
-        <section>
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
-            Rechazados ({rejected.length})
-          </p>
-          <div className="space-y-2">
-            {rejected.map((r) => (
-              <div key={r.id} className="bg-white rounded-xl border border-zinc-200 px-4 py-3 flex items-center justify-between opacity-60">
-                <div>
-                  <p className="text-sm font-medium text-zinc-900">{r.name}</p>
-                  <p className="text-xs text-zinc-400">{r.owner.email}</p>
-                </div>
-                <form action={approveRestaurant.bind(null, r.id)}>
-                  <button type="submit" className="text-xs text-green-600 hover:text-green-700">Aprobar</button>
-                </form>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
       )}
+
+      {/* Pedidos recientes */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-zinc-900">Pedidos recientes</h2>
+          <Link href="/admin/orders" className="text-xs text-orange-500 font-semibold">Ver todos →</Link>
+        </div>
+        {recentOrders.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-zinc-100 p-8 text-center">
+            <p className="text-3xl mb-2">📭</p>
+            <p className="text-sm text-zinc-400">Aún no hay pedidos</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl border border-zinc-100 divide-y divide-zinc-50 overflow-hidden shadow-sm">
+            {recentOrders.map((o) => (
+              <div key={o.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{o.customer.name}</p>
+                  <p className="text-xs text-zinc-400 truncate">{o.restaurant.name}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLOR[o.status] ?? "bg-zinc-100 text-zinc-500"}`}>
+                    {STATUS_LABEL[o.status]}
+                  </span>
+                  <p className="text-xs text-zinc-400 mt-1">{new Date(o.createdAt).toLocaleDateString("es-BO")}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
