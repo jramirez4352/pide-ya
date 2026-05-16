@@ -58,7 +58,7 @@ export default async function HomePage() {
             const stepIndex = STATUS_STEPS.indexOf(order.status)
             const progress = order.status === "CANCELLED" ? 0 : Math.round(((stepIndex + 1) / STATUS_STEPS.length) * 100)
             return (
-              <Link key={order.id} href="/orders" className={`block rounded-2xl border p-4 space-y-3 ${STATUS_COLOR[order.status] ?? "bg-zinc-50 border-zinc-200"}`}>
+              <Link key={order.id} href={`/orders/${order.id}`} className={`block rounded-2xl border p-4 space-y-3 ${STATUS_COLOR[order.status] ?? "bg-zinc-50 border-zinc-200"}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
                     {order.restaurant.logoUrl
