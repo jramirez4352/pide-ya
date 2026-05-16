@@ -27,6 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="max-w-2xl mx-auto px-4 flex gap-1 pb-2 overflow-x-auto">
           {[
             { href: "/admin", label: "Resumen", icon: "📊" },
+            { href: "/admin/zones", label: "Zonas", icon: "🗺️" },
             { href: "/admin/restaurants", label: "Restaurantes", icon: "🍽️" },
             { href: "/admin/orders", label: "Pedidos", icon: "🛍️" },
             { href: "/admin/users", label: "Usuarios", icon: "👥" },

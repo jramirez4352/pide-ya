@@ -14,12 +14,24 @@ model User {
   password  String
   phone     String?
   role      String   @default("CUSTOMER") // CUSTOMER | RESTAURANT | ADMIN
+  zoneId    String?
+  zone      Zone?    @relation(fields: [zoneId], references: [id])
   createdAt DateTime @default(now())
 
   restaurant          Restaurant?
   orders              Order[]
   savedAddresses      SavedAddress[]
   passwordResetTokens PasswordResetToken[]
+}
+
+model Zone {
+  id          String       @id @default(cuid())
+  name        String       // "Barrio El Pinal"
+  city        String       // "Bogotá"
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  users       User[]
+  restaurants Restaurant[]
 }
 
 model Restaurant {
@@ -40,6 +52,7 @@ model Restaurant {
   categories     Category[]
   paymentMethods PaymentMethod[]
   orders         Order[]
+  zones          Zone[]
 }
 
 model Category {
