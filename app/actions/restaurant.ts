@@ -138,23 +138,25 @@ export async function deletePaymentMethod(id: string) {
 
 // ─── Modificadores ────────────────────────────────────────────────────────────
 
-export async function addModifierGroup(formData: FormData): Promise<void> {
+export async function addModifierGroup(formData: FormData) {
   const restaurant = await getRestaurant()
-  if (!restaurant) return
+  if (!restaurant) return null
   const menuItemId = formData.get("menuItemId") as string
   const name = (formData.get("name") as string)?.trim()
-  if (!menuItemId || !name) return
+  if (!menuItemId || !name) return null
   const item = await db.menuItem.findFirst({ where: { id: menuItemId, category: { restaurantId: restaurant.id } } })
-  if (!item) return
-  await db.modifierGroup.create({
+  if (!item) return null
+  const group = await db.modifierGroup.create({
     data: {
       menuItemId,
       name,
       required: formData.get("required") === "on",
       multiSelect: formData.get("multiSelect") === "on",
     },
+    include: { options: true },
   })
   revalidatePath("/dashboard/menu")
+  return group
 }
 
 export async function deleteModifierGroup(id: string): Promise<void> {
@@ -164,17 +166,18 @@ export async function deleteModifierGroup(id: string): Promise<void> {
   revalidatePath("/dashboard/menu")
 }
 
-export async function addModifierOption(formData: FormData): Promise<void> {
+export async function addModifierOption(formData: FormData) {
   const restaurant = await getRestaurant()
-  if (!restaurant) return
+  if (!restaurant) return null
   const modifierGroupId = formData.get("modifierGroupId") as string
   const name = (formData.get("name") as string)?.trim()
   const price = parseFloat((formData.get("price") as string) || "0") || 0
-  if (!modifierGroupId || !name) return
+  if (!modifierGroupId || !name) return null
   const group = await db.modifierGroup.findFirst({ where: { id: modifierGroupId, menuItem: { category: { restaurantId: restaurant.id } } } })
-  if (!group) return
-  await db.modifierOption.create({ data: { modifierGroupId, name, price } })
+  if (!group) return null
+  const option = await db.modifierOption.create({ data: { modifierGroupId, name, price } })
   revalidatePath("/dashboard/menu")
+  return option
 }
 
 export async function deleteModifierOption(id: string): Promise<void> {
