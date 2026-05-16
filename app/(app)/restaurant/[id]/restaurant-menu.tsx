@@ -251,7 +251,15 @@ export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
           <div className="relative w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col">
             <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
               <h2 className="text-lg font-black text-zinc-900">Tu carrito</h2>
-              <button onClick={() => setShowCart(false)} className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 font-bold">✕</button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { if (confirm("¿Vaciar el carrito?")) { saveCart([]); setShowCart(false) } }}
+                  className="text-xs text-red-400 hover:text-red-600 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-xl transition-colors"
+                >
+                  🗑️ Vaciar
+                </button>
+                <button onClick={() => setShowCart(false)} className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 font-bold">✕</button>
+              </div>
             </div>
             <div className="overflow-y-auto flex-1 p-5 space-y-3">
               {cart.map(item => (

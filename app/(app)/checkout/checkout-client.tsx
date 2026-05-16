@@ -56,6 +56,14 @@ export function CheckoutClient({ userId }: { userId: string }) {
 
   const canSubmit = selectedPayment && proof && (!deliveryType || deliveryType !== "DELIVERY" || address)
 
+  function clearCart() {
+    localStorage.removeItem("cart")
+    localStorage.removeItem("restaurantId")
+    localStorage.removeItem("paymentMethods")
+    localStorage.removeItem("deliveryTypes")
+    router.push("/")
+  }
+
   async function handleSubmit() {
     if (!selectedPayment) { setError("Selecciona un método de pago"); return }
     if (!proof) { setError("Debes adjuntar el comprobante de pago"); return }
@@ -110,9 +118,20 @@ export function CheckoutClient({ userId }: { userId: string }) {
   return (
     <div className="pb-36">
       {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-2xl font-black text-zinc-900">Confirmar pedido</h1>
-        <p className="text-zinc-400 text-sm mt-0.5">{cartCount} {cartCount === 1 ? "ítem" : "ítems"} · {formatCOP(total)}</p>
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-black text-zinc-900">Confirmar pedido</h1>
+          <p className="text-zinc-400 text-sm mt-0.5">{cartCount} {cartCount === 1 ? "ítem" : "ítems"} · {formatCOP(total)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("¿Vaciar el carrito y volver al inicio?")) clearCart()
+          }}
+          className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 font-bold bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors mt-1"
+        >
+          🗑️ Vaciar
+        </button>
       </div>
 
       <div className="space-y-4">
