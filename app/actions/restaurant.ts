@@ -84,10 +84,9 @@ export async function saveMenuItem(formData: FormData): Promise<{ error?: string
   if (!category) return { error: "Categoría inválida" }
 
   let imageUrl: string | undefined = undefined
-  const imageFile = formData.get("image") as File | null
-  if (imageFile && imageFile.size > 0) {
-    const buf = await imageFile.arrayBuffer()
-    imageUrl = `data:${imageFile.type};base64,${Buffer.from(buf).toString("base64")}`
+  const imageDataUrl = formData.get("imageDataUrl") as string | null
+  if (imageDataUrl && imageDataUrl.startsWith("data:image/")) {
+    imageUrl = imageDataUrl
   }
 
   if (id) {

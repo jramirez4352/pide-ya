@@ -48,10 +48,28 @@ export function ItemForm({
   const formRef = useRef<HTMLFormElement>(null)
   const groupFormRef = useRef<HTMLFormElement>(null)
 
-  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+  async function compressImage(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 900
+        let { width, height } = img
+        if (width > MAX) { height = Math.round(height * MAX / width); width = MAX }
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL("image/jpeg", 0.82))
+      }
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setImagePreview(URL.createObjectURL(file))
+    const compressed = await compressImage(file)
+    setImagePreview(compressed)
   }
 
   function handleSave() {
@@ -60,6 +78,10 @@ export function ItemForm({
       if (!formRef.current) return
       const formData = new FormData(formRef.current)
       if (item) formData.set("id", item.id)
+      // Use compressed preview instead of the raw file from the input
+      if (imagePreview && imagePreview.startsWith("data:")) {
+        formData.set("imageDataUrl", imagePreview)
+      }
       const result = await saveMenuItem(formData)
       if (result?.error) { setSaveError(result.error); return }
       router.push("/dashboard/menu")

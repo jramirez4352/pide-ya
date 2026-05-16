@@ -79,13 +79,15 @@ export default async function ProfilePage() {
                 </div>
                 <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
                   {!addr.isDefault && (
-                    <form action={setDefaultAddress.bind(null, addr.id)}>
+                    <form action={setDefaultAddress}>
+                      <input type="hidden" name="id" value={addr.id} />
                       <button type="submit" className="text-xs text-orange-500 font-bold hover:text-orange-700">
                         Usar principal
                       </button>
                     </form>
                   )}
-                  <form action={deleteAddress.bind(null, addr.id)}>
+                  <form action={deleteAddress}>
+                    <input type="hidden" name="id" value={addr.id} />
                     <button type="submit" className="text-xs text-red-400 hover:text-red-600 font-medium">
                       Eliminar
                     </button>

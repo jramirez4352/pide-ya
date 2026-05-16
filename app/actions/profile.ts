@@ -21,21 +21,22 @@ export async function updateProfile(formData: FormData): Promise<{ error?: strin
   return {}
 }
 
-export async function addAddress(formData: FormData): Promise<{ error?: string }> {
+export async function addAddress(formData: FormData): Promise<void> {
   const user = await getUser()
-  if (!user) return { error: "No autorizado" }
+  if (!user) return
   const label = (formData.get("label") as string)?.trim()
   const address = (formData.get("address") as string)?.trim()
-  if (!label || !address) return { error: "Completa todos los campos" }
+  if (!label || !address) return
   const isFirst = (await db.savedAddress.count({ where: { userId: user.id } })) === 0
   await db.savedAddress.create({ data: { userId: user.id, label, address, isDefault: isFirst } })
   revalidatePath("/profile")
-  return {}
 }
 
-export async function deleteAddress(id: string): Promise<void> {
+export async function deleteAddress(formData: FormData): Promise<void> {
   const user = await getUser()
   if (!user) return
+  const id = formData.get("id") as string
+  if (!id) return
   const addr = await db.savedAddress.findFirst({ where: { id, userId: user.id } })
   if (!addr) return
   await db.savedAddress.delete({ where: { id } })
@@ -46,9 +47,11 @@ export async function deleteAddress(id: string): Promise<void> {
   revalidatePath("/profile")
 }
 
-export async function setDefaultAddress(id: string): Promise<void> {
+export async function setDefaultAddress(formData: FormData): Promise<void> {
   const user = await getUser()
   if (!user) return
+  const id = formData.get("id") as string
+  if (!id) return
   await db.savedAddress.updateMany({ where: { userId: user.id }, data: { isDefault: false } })
   await db.savedAddress.update({ where: { id, userId: user.id }, data: { isDefault: true } })
   revalidatePath("/profile")
