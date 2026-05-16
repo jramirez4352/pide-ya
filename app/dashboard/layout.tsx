@@ -2,10 +2,13 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { OrderNotifier } from "@/components/order-notifier"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session || session.user.role !== "RESTAURANT") redirect("/login")
+  const restaurant = await db.restaurant.findUnique({ where: { ownerId: session.user.id }, select: { id: true } })
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
@@ -23,6 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
+      {restaurant && <OrderNotifier restaurantId={restaurant.id} />}
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-5 pb-24">{children}</main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-10">
@@ -30,6 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {[
             { href: "/dashboard", label: "Pedidos", icon: "🛍️" },
             { href: "/dashboard/menu", label: "Menú", icon: "🍽️" },
+            { href: "/dashboard/schedule", label: "Horarios", icon: "🕐" },
             { href: "/dashboard/payments", label: "Pagos", icon: "💳" },
           ].map((item) => (
             <Link key={item.href} href={item.href} className="flex-1 flex flex-col items-center py-3 gap-1 group">

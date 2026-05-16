@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { placeOrder } from "@/app/actions/orders"
 import { getSavedAddresses } from "@/app/actions/profile"
+import { validatePromoCode } from "@/app/actions/promo"
 
 type SavedAddress = { id: string; label: string; address: string; isDefault: boolean }
 type CartItem = {
@@ -35,6 +36,9 @@ export function CheckoutClient({ userId }: { userId: string }) {
   const [showEditCart, setShowEditCart] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [promoCode, setPromoCode] = useState("")
+  const [promoResult, setPromoResult] = useState<{ discountPct?: number; discountAmt?: number; promoCodeId?: string; error?: string } | null>(null)
+  const [checkingPromo, setCheckingPromo] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -88,8 +92,18 @@ export function CheckoutClient({ userId }: { userId: string }) {
     localStorage.setItem("cart", JSON.stringify(updated))
   }
 
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0)
+  const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0)
+  const discountAmt = promoResult?.discountAmt ?? 0
+  const total = Math.max(0, subtotal - discountAmt)
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
+
+  async function applyPromo() {
+    if (!promoCode.trim()) return
+    setCheckingPromo(true)
+    const result = await validatePromoCode(promoCode, restaurantId, subtotal)
+    setPromoResult(result)
+    setCheckingPromo(false)
+  }
   const canSubmit = !!selectedPayment && !!proof && !(deliveryType === "DELIVERY" && !address)
 
   async function handleSubmit() {
@@ -106,6 +120,8 @@ export function CheckoutClient({ userId }: { userId: string }) {
     fd.append("restaurantId", restaurantId)
     fd.append("items", JSON.stringify(cart))
     fd.append("total", String(total))
+    fd.append("discountAmt", String(discountAmt))
+    if (promoResult?.promoCodeId) fd.append("promoCodeId", promoResult.promoCodeId)
     fd.append("deliveryType", deliveryType)
     fd.append("address", address)
     fd.append("notes", notes)
@@ -286,6 +302,12 @@ export function CheckoutClient({ userId }: { userId: string }) {
             </div>
           ))}
         </div>
+        {discountAmt > 0 && (
+          <div className="flex items-center justify-between px-4 py-2 bg-green-50 border-t border-green-100">
+            <p className="text-sm text-green-700 font-bold">🎁 Descuento ({promoResult?.discountPct}%)</p>
+            <p className="font-bold text-sm text-green-700">-{formatCOP(discountAmt)}</p>
+          </div>
+        )}
         <div className="flex items-center justify-between px-4 py-4 bg-orange-50 border-t border-orange-100">
           <p className="font-black text-zinc-900">Total</p>
           <p className="text-xl font-black text-orange-500">{formatCOP(total)}</p>
@@ -342,6 +364,35 @@ export function CheckoutClient({ userId }: { userId: string }) {
         <textarea value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Sin cebolla, extra salsa, bien cocido..." rows={2}
           className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder:text-zinc-400" />
+      </div>
+
+      {/* Código de descuento */}
+      <div className="bg-white rounded-3xl border border-zinc-100 p-4 shadow-sm space-y-3">
+        <p className="font-black text-xs text-zinc-400 uppercase tracking-widest">🎁 Código de descuento</p>
+        <div className="flex gap-2">
+          <input
+            value={promoCode}
+            onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoResult(null) }}
+            placeholder="Ingresa tu código"
+            className="flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm uppercase font-bold focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder:text-zinc-400 placeholder:normal-case placeholder:font-normal"
+          />
+          <button type="button" onClick={applyPromo} disabled={checkingPromo || !promoCode.trim()}
+            className="bg-zinc-900 text-white font-bold rounded-2xl px-4 py-3 text-sm disabled:opacity-40 hover:bg-zinc-700 transition-colors">
+            {checkingPromo ? "..." : "Aplicar"}
+          </button>
+        </div>
+        {promoResult && !promoResult.error && promoResult.discountAmt && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+            <span>🎉</span>
+            <p className="text-sm font-bold text-green-700">
+              {promoResult.discountPct}% de descuento — ahorrás {formatCOP(promoResult.discountAmt ?? 0)}
+            </p>
+            <button onClick={() => { setPromoResult(null); setPromoCode("") }} className="ml-auto text-green-500 font-bold">✕</button>
+          </div>
+        )}
+        {promoResult?.error && (
+          <p className="text-sm text-red-500 font-medium">⚠️ {promoResult.error}</p>
+        )}
       </div>
 
       {/* Métodos de pago */}

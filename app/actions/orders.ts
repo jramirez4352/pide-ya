@@ -25,15 +25,25 @@ export async function placeOrder(formData: FormData) {
   const base64 = Buffer.from(buffer).toString("base64")
   const proofUrl = `data:${proof.type};base64,${base64}`
 
+  const discountAmt = parseFloat(formData.get("discountAmt") as string) || 0
+  const promoCodeId = (formData.get("promoCodeId") as string) || null
+
+  // Calcular comisión del restaurante
+  const restaurant = await db.restaurant.findUnique({ where: { id: restaurantId }, select: { commissionPct: true } })
+  const commissionAmt = restaurant ? Math.round(total * (restaurant.commissionPct / 100)) : 0
+
   await db.order.create({
     data: {
       customerId: session.user.id,
       restaurantId,
       total,
+      discountAmt,
+      commissionAmt,
       deliveryType,
       address: address || null,
       notes: notes || null,
       proofUrl,
+      promoCodeId,
       status: "PENDING",
       items: {
         create: items.map((i) => ({
@@ -45,6 +55,11 @@ export async function placeOrder(formData: FormData) {
       },
     },
   })
+
+  // Incrementar contador de uso del código promo
+  if (promoCodeId) {
+    await db.promoCode.update({ where: { id: promoCodeId }, data: { usedCount: { increment: 1 } } })
+  }
 
   return { success: true }
 }

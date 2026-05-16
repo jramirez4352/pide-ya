@@ -13,7 +13,7 @@ model User {
   email     String   @unique
   password  String
   phone     String?
-  role      String   @default("CUSTOMER") // CUSTOMER | RESTAURANT | ADMIN
+  role      String   @default("CUSTOMER")
   zoneId    String?
   zone      Zone?    @relation(fields: [zoneId], references: [id])
   createdAt DateTime @default(now())
@@ -21,38 +21,60 @@ model User {
   restaurant          Restaurant?
   orders              Order[]
   savedAddresses      SavedAddress[]
+  reviews             Review[]
   passwordResetTokens PasswordResetToken[]
 }
 
 model Zone {
   id          String       @id @default(cuid())
-  name        String       // "Barrio El Pinal"
-  city        String       // "Bogotá"
+  name        String
+  city        String
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   users       User[]
   restaurants Restaurant[]
 }
 
+model Plan {
+  id            String       @id @default(cuid())
+  name          String       // "Básico", "Estándar", "Pro"
+  price         Float        // precio mensual en COP
+  commissionPct Float        @default(0) // % de comisión por pedido
+  maxZones      Int          @default(1)
+  features      String[]     // lista de características
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  restaurants   Restaurant[]
+}
+
 model Restaurant {
-  id            String   @id @default(cuid())
-  owner         User     @relation(fields: [ownerId], references: [id])
-  ownerId       String   @unique
+  id            String    @id @default(cuid())
+  owner         User      @relation(fields: [ownerId], references: [id])
+  ownerId       String    @unique
   name          String
   description   String?
   address       String
   phone         String
+  whatsapp      String?   // número WhatsApp del restaurante
   logoUrl       String?
   coverUrl      String?
-  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  status        String    @default("PENDING")
   deliveryTypes String[]
-  openHours     String?
-  createdAt     DateTime @default(now())
+  openHours     String?   // texto libre legacy
+  schedule      String?   // JSON: {"mon":"08:00-22:00","tue":"08:00-22:00",...}
+  isOpen        Boolean   @default(true) // toggle manual abierto/cerrado
+  planId        String?
+  plan          Plan?     @relation(fields: [planId], references: [id])
+  paidUntil     DateTime?
+  commissionPct Float     @default(0)
+  createdAt     DateTime  @default(now())
 
   categories     Category[]
   paymentMethods PaymentMethod[]
   orders         Order[]
   zones          Zone[]
+  reviews        Review[]
+  promoCodes     PromoCode[]
 }
 
 model Category {
@@ -65,16 +87,16 @@ model Category {
 }
 
 model MenuItem {
-  id          String          @id @default(cuid())
-  category    Category        @relation(fields: [categoryId], references: [id])
-  categoryId  String
-  name        String
-  description String?
-  price       Float
-  imageUrl    String?
-  available   Boolean         @default(true)
-  order       Int             @default(0)
-  orderItems  OrderItem[]
+  id             String          @id @default(cuid())
+  category       Category        @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  name           String
+  description    String?
+  price          Float
+  imageUrl       String?
+  available      Boolean         @default(true)
+  order          Int             @default(0)
+  orderItems     OrderItem[]
   modifierGroups ModifierGroup[]
 }
 
@@ -82,7 +104,7 @@ model ModifierGroup {
   id          String           @id @default(cuid())
   menuItem    MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   menuItemId  String
-  name        String           // e.g. "Término", "Extras", "Salsas"
+  name        String
   required    Boolean          @default(false)
   multiSelect Boolean          @default(false)
   order       Int              @default(0)
@@ -93,7 +115,7 @@ model ModifierOption {
   id              String        @id @default(cuid())
   modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
   modifierGroupId String
-  name            String        // e.g. "Extra queso", "Sin cebolla"
+  name            String
   price           Float         @default(0)
   order           Int           @default(0)
 }
@@ -102,7 +124,7 @@ model PaymentMethod {
   id           String     @id @default(cuid())
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
   restaurantId String
-  type         String     // QR | TRANSFER | CASH
+  type         String
   label        String
   details      String?
   qrImageUrl   String?
@@ -110,20 +132,25 @@ model PaymentMethod {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  customer     User        @relation(fields: [customerId], references: [id])
-  customerId   String
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
-  restaurantId String
-  items        OrderItem[]
-  status       String      @default("PENDING")
-  deliveryType String
-  address      String?
-  notes        String?
-  total        Float
-  proofUrl     String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  customer      User        @relation(fields: [customerId], references: [id])
+  customerId    String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurantId  String
+  items         OrderItem[]
+  status        String      @default("PENDING")
+  deliveryType  String
+  address       String?
+  notes         String?
+  total         Float
+  discountAmt   Float       @default(0)
+  commissionAmt Float       @default(0)
+  proofUrl      String
+  promoCodeId   String?
+  promoCode     PromoCode?  @relation(fields: [promoCodeId], references: [id])
+  review        Review?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -136,14 +163,43 @@ model OrderItem {
   price      Float
   quantity   Int
   comment    String?
-  modifiers  String?  // JSON: [{groupName, optionName, price}]
+  modifiers  String?
+}
+
+model Review {
+  id           String     @id @default(cuid())
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderId      String     @unique
+  customer     User       @relation(fields: [customerId], references: [id])
+  customerId   String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  rating       Int        // 1-5
+  comment      String?
+  createdAt    DateTime   @default(now())
+}
+
+model PromoCode {
+  id           String     @id @default(cuid())
+  code         String     @unique
+  description  String?
+  discountPct  Float      // porcentaje de descuento
+  minOrder     Float      @default(0)
+  maxUses      Int?
+  usedCount    Int        @default(0)
+  expiresAt    DateTime?
+  active       Boolean    @default(true)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  orders       Order[]
+  createdAt    DateTime   @default(now())
 }
 
 model SavedAddress {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  label     String   // "Casa", "Trabajo", etc.
+  label     String
   address   String
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
