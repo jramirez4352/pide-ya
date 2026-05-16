@@ -67,6 +67,47 @@ export async function deleteMenuItem(id: string) {
   revalidatePath("/dashboard/menu")
 }
 
+export async function saveMenuItem(formData: FormData): Promise<{ error?: string; id?: string }> {
+  const restaurant = await getRestaurant()
+  if (!restaurant) return { error: "No autorizado" }
+
+  const id = formData.get("id") as string | null
+  const name = (formData.get("name") as string)?.trim()
+  const description = (formData.get("description") as string)?.trim() || null
+  const price = parseFloat(formData.get("price") as string)
+  const categoryId = formData.get("categoryId") as string
+  const available = formData.get("available") === "on"
+
+  if (!name || isNaN(price) || !categoryId) return { error: "Datos incompletos" }
+
+  const category = await db.category.findFirst({ where: { id: categoryId, restaurantId: restaurant.id } })
+  if (!category) return { error: "Categoría inválida" }
+
+  let imageUrl: string | undefined = undefined
+  const imageFile = formData.get("image") as File | null
+  if (imageFile && imageFile.size > 0) {
+    const buf = await imageFile.arrayBuffer()
+    imageUrl = `data:${imageFile.type};base64,${Buffer.from(buf).toString("base64")}`
+  }
+
+  if (id) {
+    const existing = await db.menuItem.findFirst({ where: { id, category: { restaurantId: restaurant.id } } })
+    if (!existing) return { error: "Plato no encontrado" }
+    await db.menuItem.update({
+      where: { id },
+      data: { name, description, price, categoryId, available, ...(imageUrl ? { imageUrl } : {}) },
+    })
+    revalidatePath("/dashboard/menu")
+    return { id }
+  } else {
+    const item = await db.menuItem.create({
+      data: { name, description, price, categoryId, available, imageUrl: imageUrl ?? null },
+    })
+    revalidatePath("/dashboard/menu")
+    return { id: item.id }
+  }
+}
+
 // ─── Métodos de pago ──────────────────────────────────────────────────────────
 
 export async function addPaymentMethod(formData: FormData): Promise<void> {
