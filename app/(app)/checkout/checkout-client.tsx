@@ -30,6 +30,7 @@ export function CheckoutClient({ userId }: { userId: string }) {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
   const [showConfirmClear, setShowConfirmClear] = useState(false)
+  const [showEditCart, setShowEditCart] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -61,6 +62,20 @@ export function CheckoutClient({ userId }: { userId: string }) {
     localStorage.removeItem("paymentMethods")
     localStorage.removeItem("deliveryTypes")
     router.push("/")
+  }
+
+  function changeQty(cartId: string, delta: number) {
+    const updated = cart
+      .map(i => i.cartId === cartId ? { ...i, quantity: i.quantity + delta } : i)
+      .filter(i => i.quantity > 0)
+    setCart(updated)
+    localStorage.setItem("cart", JSON.stringify(updated))
+  }
+
+  function removeItem(cartId: string) {
+    const updated = cart.filter(i => i.cartId !== cartId)
+    setCart(updated)
+    localStorage.setItem("cart", JSON.stringify(updated))
   }
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0)
@@ -150,14 +165,87 @@ export function CheckoutClient({ userId }: { userId: string }) {
         <p className="text-zinc-400 text-sm mt-0.5">{cartCount} ítem{cartCount !== 1 ? "s" : ""} · {formatCOP(total)}</p>
       </div>
 
-      {/* BOTÓN CANCELAR — prominente y visible */}
-      <button
-        onClick={() => setShowConfirmClear(true)}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-red-200 bg-red-50 text-red-500 font-bold text-sm hover:bg-red-100 transition-colors"
-      >
-        <span className="text-lg">🗑️</span>
-        Cancelar y vaciar carrito
-      </button>
+      {/* Botones: Cancelar + Editar carrito */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setShowConfirmClear(true)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 border-red-200 bg-red-50 text-red-500 font-bold text-sm hover:bg-red-100 transition-colors"
+        >
+          <span>🗑️</span> Cancelar
+        </button>
+        <button
+          onClick={() => setShowEditCart(true)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 border-zinc-200 bg-white text-zinc-700 font-bold text-sm hover:bg-zinc-50 transition-colors"
+        >
+          <span>✏️</span> Editar carrito
+        </button>
+      </div>
+
+      {/* Panel editar carrito */}
+      {showEditCart && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEditCart(false)} />
+          <div className="relative w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+              <div>
+                <h2 className="text-lg font-black text-zinc-900">Editar carrito</h2>
+                <p className="text-xs text-zinc-400">{cartCount} ítem{cartCount !== 1 ? "s" : ""} · {formatCOP(total)}</p>
+              </div>
+              <button onClick={() => setShowEditCart(false)} className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 font-bold">✕</button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+              {cart.length === 0 ? (
+                <div className="text-center py-8 text-zinc-400">
+                  <p className="text-3xl mb-2">🛒</p>
+                  <p className="text-sm">El carrito quedó vacío</p>
+                </div>
+              ) : (
+                cart.map((item, i) => (
+                  <div key={item.cartId ?? i} className="bg-zinc-50 rounded-2xl p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-zinc-900">{item.name}</p>
+                        {item.modifiers && item.modifiers.length > 0 && (
+                          <p className="text-xs text-zinc-400 mt-0.5">{item.modifiers.map(m => m.optionName).join(", ")}</p>
+                        )}
+                        {item.comment && <p className="text-xs text-zinc-400 italic">"{item.comment}"</p>}
+                      </div>
+                      <button onClick={() => removeItem(item.cartId ?? String(i))} className="text-red-300 hover:text-red-500 font-bold text-xl leading-none transition-colors flex-shrink-0">×</button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200 p-1">
+                        <button onClick={() => changeQty(item.cartId ?? String(i), -1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-zinc-600 text-lg hover:bg-zinc-50">−</button>
+                        <span className="text-sm font-black w-5 text-center">{item.quantity}</span>
+                        <button onClick={() => changeQty(item.cartId ?? String(i), 1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-zinc-600 text-lg hover:bg-zinc-50">+</button>
+                      </div>
+                      <p className="font-black text-sm text-zinc-900">{formatCOP(item.price * item.quantity)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-zinc-100 space-y-3">
+              <button
+                onClick={() => { setShowEditCart(false); router.push(restaurantId ? `/restaurant/${restaurantId}` : "/") }}
+                className="w-full py-3 rounded-2xl border-2 border-orange-200 bg-orange-50 text-orange-600 font-bold text-sm hover:bg-orange-100 transition-colors"
+              >
+                + Agregar más productos
+              </button>
+              {cart.length > 0 && (
+                <button
+                  onClick={() => setShowEditCart(false)}
+                  className="w-full py-3.5 rounded-2xl text-white font-black text-sm"
+                  style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}
+                >
+                  Listo · {formatCOP(cart.reduce((s, i) => s + i.price * i.quantity, 0))}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resumen */}
       <div className="bg-white rounded-3xl border border-zinc-100 overflow-hidden shadow-sm">
