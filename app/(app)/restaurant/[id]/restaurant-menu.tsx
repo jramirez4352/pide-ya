@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { formatCOP } from "@/lib/currency"
 
@@ -29,6 +29,16 @@ export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
   const [modalQty, setModalQty] = useState(1)
   const [modalComment, setModalComment] = useState("")
   const [modalModifiers, setModalModifiers] = useState<Record<string, string[]>>({})
+
+  useEffect(() => {
+    try {
+      const savedRestId = localStorage.getItem("restaurantId")
+      const savedCart = localStorage.getItem("cart")
+      if (savedRestId === restaurant.id && savedCart) {
+        setCart(JSON.parse(savedCart))
+      }
+    } catch {}
+  }, [restaurant.id])
 
   function openModal(item: MenuItem) {
     setModalItem(item)
@@ -62,6 +72,14 @@ export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
     return modalItem.modifierGroups.every(g => !g.required || (modalModifiers[g.id]?.length ?? 0) > 0)
   }
 
+  function saveCart(newCart: CartItem[]) {
+    setCart(newCart)
+    localStorage.setItem("cart", JSON.stringify(newCart))
+    localStorage.setItem("restaurantId", restaurant.id)
+    localStorage.setItem("paymentMethods", JSON.stringify(restaurant.paymentMethods))
+    localStorage.setItem("deliveryTypes", JSON.stringify(restaurant.deliveryTypes))
+  }
+
   function addToCart() {
     if (!modalItem) return
     const selectedMods: SelectedModifier[] = []
@@ -73,26 +91,22 @@ export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
     })
     const unitPrice = modalItem.price + getModifierPrice()
     const cartId = `${modalItem.id}_${Date.now()}`
-    setCart(prev => [...prev, { cartId, id: modalItem.id, name: modalItem.name, price: unitPrice, quantity: modalQty, comment: modalComment, modifiers: selectedMods }])
+    saveCart([...cart, { cartId, id: modalItem.id, name: modalItem.name, price: unitPrice, quantity: modalQty, comment: modalComment, modifiers: selectedMods }])
     closeModal()
   }
 
   function removeFromCart(cartId: string) {
-    setCart(prev => prev.filter(i => i.cartId !== cartId))
+    saveCart(cart.filter(i => i.cartId !== cartId))
   }
 
   function changeQty(cartId: string, delta: number) {
-    setCart(prev => prev.map(i => i.cartId === cartId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i).filter(i => i.quantity > 0))
+    saveCart(cart.map(i => i.cartId === cartId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i).filter(i => i.quantity > 0))
   }
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0)
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
 
   function goToCheckout() {
-    sessionStorage.setItem("cart", JSON.stringify(cart))
-    sessionStorage.setItem("restaurantId", restaurant.id)
-    sessionStorage.setItem("paymentMethods", JSON.stringify(restaurant.paymentMethods))
-    sessionStorage.setItem("deliveryTypes", JSON.stringify(restaurant.deliveryTypes))
     router.push("/checkout")
   }
 

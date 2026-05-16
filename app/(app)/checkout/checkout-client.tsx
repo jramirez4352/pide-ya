@@ -28,10 +28,10 @@ export function CheckoutClient({ userId }: { userId: string }) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const c = sessionStorage.getItem("cart")
-    const r = sessionStorage.getItem("restaurantId")
-    const pm = sessionStorage.getItem("paymentMethods")
-    const dt = sessionStorage.getItem("deliveryTypes")
+    const c = localStorage.getItem("cart")
+    const r = localStorage.getItem("restaurantId")
+    const pm = localStorage.getItem("paymentMethods")
+    const dt = localStorage.getItem("deliveryTypes")
     if (!c || !r) { router.replace("/"); return }
     const parsedCart = JSON.parse(c)
     const parsedPM = pm ? JSON.parse(pm) : []
@@ -78,10 +78,10 @@ export function CheckoutClient({ userId }: { userId: string }) {
 
     if (result?.error) { setError(result.error); return }
 
-    sessionStorage.removeItem("cart")
-    sessionStorage.removeItem("restaurantId")
-    sessionStorage.removeItem("paymentMethods")
-    sessionStorage.removeItem("deliveryTypes")
+    localStorage.removeItem("cart")
+    localStorage.removeItem("restaurantId")
+    localStorage.removeItem("paymentMethods")
+    localStorage.removeItem("deliveryTypes")
     router.push("/orders")
   }
 

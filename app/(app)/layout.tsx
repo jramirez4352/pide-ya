@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "@/lib/auth"
+import { CartIndicator } from "@/components/cart-indicator"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-5 pb-24">{children}</main>
+      <CartIndicator />
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-10 safe-area-inset-bottom">
         <div className="max-w-lg mx-auto flex">
