@@ -1,22 +1,28 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useState, useTransition } from "react"
+import { updateProfile } from "@/app/actions/profile"
 
-type ProfileFormProps = {
+type Props = {
   user: { name: string; email: string; phone: string | null }
-  updateProfile: (state: any, formData: FormData) => Promise<{ error?: string }>
 }
 
-export function ProfileForm({ user, updateProfile }: ProfileFormProps) {
+export function ProfileForm({ user }: Props) {
   const [editing, setEditing] = useState(false)
-  const [state, action, pending] = useActionState(
-    async (_: any, fd: FormData) => {
-      const result = await updateProfile(_, fd)
-      if (!result.error) setEditing(false)
-      return result
-    },
-    undefined
-  )
+  const [error, setError] = useState("")
+  const [isPending, startTransition] = useTransition()
+
+  function handleSave(formData: FormData) {
+    setError("")
+    startTransition(async () => {
+      const result = await updateProfile(formData)
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        setEditing(false)
+      }
+    })
+  }
 
   if (!editing) {
     return (
@@ -29,21 +35,21 @@ export function ProfileForm({ user, updateProfile }: ProfileFormProps) {
         </div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <span className="text-zinc-400 w-5">👤</span>
+            <span className="text-zinc-400">👤</span>
             <div>
               <p className="text-xs text-zinc-400">Nombre</p>
               <p className="text-sm font-semibold text-zinc-900">{user.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-zinc-400 w-5">✉️</span>
+            <span className="text-zinc-400">✉️</span>
             <div>
               <p className="text-xs text-zinc-400">Email</p>
               <p className="text-sm font-semibold text-zinc-900">{user.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-zinc-400 w-5">📞</span>
+            <span className="text-zinc-400">📞</span>
             <div>
               <p className="text-xs text-zinc-400">Teléfono</p>
               <p className="text-sm font-semibold text-zinc-900">{user.phone || "No registrado"}</p>
@@ -62,33 +68,21 @@ export function ProfileForm({ user, updateProfile }: ProfileFormProps) {
           Cancelar
         </button>
       </div>
-      <form action={action} className="space-y-3">
+      <form action={handleSave} className="space-y-3">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Nombre</label>
-          <input
-            name="name"
-            defaultValue={user.name}
-            required
-            className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
+          <input name="name" defaultValue={user.name} required
+            className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Teléfono</label>
-          <input
-            name="phone"
-            defaultValue={user.phone ?? ""}
-            type="tel"
-            placeholder="+57 300 000 0000"
-            className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
+          <input name="phone" defaultValue={user.phone ?? ""} type="tel" placeholder="+57 300 000 0000"
+            className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
         </div>
-        {state?.error && <p className="text-sm text-red-500">{state.error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold rounded-2xl py-3 text-sm transition-colors"
-        >
-          {pending ? "Guardando..." : "Guardar cambios"}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        <button type="submit" disabled={isPending}
+          className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold rounded-2xl py-3 text-sm transition-colors">
+          {isPending ? "Guardando..." : "Guardar cambios"}
         </button>
       </form>
     </div>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import Link from "next/link"
 import { ProfileForm } from "./profile-form"
-import { updateProfile, addAddress, deleteAddress, setDefaultAddress } from "@/app/actions/profile"
+import { addAddress, deleteAddress, setDefaultAddress } from "@/app/actions/profile"
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -49,7 +49,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* Editar datos personales */}
-      <ProfileForm user={user} updateProfile={updateProfile} />
+      <ProfileForm user={user} />
 
       {/* Direcciones guardadas */}
       <div className="bg-white rounded-3xl border border-zinc-100 overflow-hidden shadow-sm">
@@ -99,7 +99,7 @@ export default async function ProfilePage() {
         {/* Agregar nueva dirección */}
         <div className="px-5 py-4 bg-zinc-50 border-t border-zinc-100 space-y-3">
           <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">+ Nueva dirección</p>
-          <form action={async (fd) => { await addAddress(fd) }} className="space-y-2">
+          <form action={addAddress} className="space-y-2">
             <input
               name="label"
               placeholder="Nombre (Casa, Trabajo, Gym...)"
