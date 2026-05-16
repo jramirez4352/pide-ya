@@ -31,6 +31,7 @@ export function CheckoutClient({ userId }: { userId: string }) {
   const [error, setError] = useState("")
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [showEditCart, setShowEditCart] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export function CheckoutClient({ userId }: { userId: string }) {
     setDeliveryTypes(parsedDT)
     if (parsedPM.length > 0) setSelectedPayment(parsedPM[0])
     if (parsedDT.length > 0) setDeliveryType(parsedDT[0])
+    setLoaded(true)
   }, [router])
 
   function handleProof(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,6 +113,12 @@ export function CheckoutClient({ userId }: { userId: string }) {
     localStorage.removeItem("deliveryTypes")
     setTimeout(() => router.push("/orders"), 2000)
   }
+
+  if (!loaded) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+    </div>
+  )
 
   if (cart.length === 0) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
