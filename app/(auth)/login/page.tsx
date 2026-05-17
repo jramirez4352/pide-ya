@@ -79,17 +79,17 @@ export default function LoginPage() {
       <Suspense fallback={<div className="space-y-4 animate-pulse"><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-orange-100 rounded-2xl" /></div>}>
         <LoginForm />
       </Suspense>
-      <Link
+      <a
         href="/forgot-password"
         className="mt-4 block w-full text-center text-sm text-zinc-500 font-medium py-3 active:text-orange-500"
       >
         ¿Olvidaste tu contraseña?
-      </Link>
+      </a>
       <p className="mt-1 text-center text-sm text-zinc-500">
         ¿No tienes cuenta?{" "}
-        <Link href="/register" className="font-bold text-orange-500">
+        <a href="/register" className="font-bold text-orange-500">
           Regístrate gratis
-        </Link>
+        </a>
       </p>
     </>
   )
