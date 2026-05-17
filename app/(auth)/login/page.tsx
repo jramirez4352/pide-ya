@@ -69,11 +69,12 @@ function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-4 text-center">
-        <Link href="/forgot-password" className="text-sm text-zinc-400 hover:text-orange-500 transition-colors">
-          ¿Olvidaste tu contraseña?
-        </Link>
-      </p>
+      <Link
+        href="/forgot-password"
+        className="mt-4 block w-full text-center text-sm text-zinc-500 font-medium py-3 hover:text-orange-500 transition-colors"
+      >
+        ¿Olvidaste tu contraseña?
+      </Link>
       <p className="mt-3 text-center text-sm text-zinc-500">
         ¿No tienes cuenta?{" "}
         <Link href="/register" className="font-bold text-orange-500 hover:text-orange-600">
