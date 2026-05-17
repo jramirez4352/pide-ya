@@ -69,26 +69,28 @@ function LoginForm() {
         </button>
       </form>
 
-      <Link
-        href="/forgot-password"
-        className="mt-4 block w-full text-center text-sm text-zinc-500 font-medium py-3 hover:text-orange-500 transition-colors"
-      >
-        ¿Olvidaste tu contraseña?
-      </Link>
-      <p className="mt-3 text-center text-sm text-zinc-500">
-        ¿No tienes cuenta?{" "}
-        <Link href="/register" className="font-bold text-orange-500 hover:text-orange-600">
-          Regístrate gratis
-        </Link>
-      </p>
     </>
   )
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="space-y-4 animate-pulse"><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-orange-100 rounded-2xl" /></div>}>
-      <LoginForm />
-    </Suspense>
+    <>
+      <Suspense fallback={<div className="space-y-4 animate-pulse"><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-zinc-100 rounded-2xl" /><div className="h-14 bg-orange-100 rounded-2xl" /></div>}>
+        <LoginForm />
+      </Suspense>
+      <Link
+        href="/forgot-password"
+        className="mt-4 block w-full text-center text-sm text-zinc-500 font-medium py-3 active:text-orange-500"
+      >
+        ¿Olvidaste tu contraseña?
+      </Link>
+      <p className="mt-1 text-center text-sm text-zinc-500">
+        ¿No tienes cuenta?{" "}
+        <Link href="/register" className="font-bold text-orange-500">
+          Regístrate gratis
+        </Link>
+      </p>
+    </>
   )
 }
