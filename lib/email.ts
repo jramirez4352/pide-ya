@@ -32,14 +32,28 @@ function btn(text: string, url: string) {
   return `<a href="${url}" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;font-size:14px;padding:13px 28px;border-radius:14px;text-decoration:none;margin:20px 0">${text}</a>`
 }
 
+// Envío crítico — lanza si falla (ej: reset de contraseña)
 function send(to: string, subject: string, html: string) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return Promise.resolve()
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("EMAIL_USER o EMAIL_PASS no están configurados")
+  }
   return transporter.sendMail({
     from: `"PideYa" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html: base(html),
-  }).catch(() => {}) // nunca bloquea la acción principal
+  })
+}
+
+// Envío opcional — fire-and-forget (notificaciones, bienvenida, etc.)
+function sendSilent(to: string, subject: string, html: string) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return
+  transporter.sendMail({
+    from: `"PideYa" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html: base(html),
+  }).catch(() => {})
 }
 
 const APP = () => process.env.NEXT_PUBLIC_APP_URL ?? "https://pide-ya.vercel.app"
@@ -47,7 +61,7 @@ const APP = () => process.env.NEXT_PUBLIC_APP_URL ?? "https://pide-ya.vercel.app
 // ─── Registro ─────────────────────────────────────────────────────────────────
 
 export function sendWelcomeCustomer(to: string, name: string) {
-  return send(to, "¡Bienvenido a PideYa! 🍔", `
+  return sendSilent(to, "¡Bienvenido a PideYa! 🍔", `
     <h1 style="font-size:22px;font-weight:900;color:#18181b;margin:0 0 8px">¡Hola, ${name}!</h1>
     <p style="color:#52525b;font-size:15px;margin:0 0 4px">Tu cuenta en PideYa está lista.</p>
     <p style="color:#71717a;font-size:14px;margin:0 0 20px">Explora los restaurantes disponibles en tu zona y haz tu primer pedido.</p>
@@ -56,7 +70,7 @@ export function sendWelcomeCustomer(to: string, name: string) {
 }
 
 export function sendWelcomeRestaurant(to: string, ownerName: string, restaurantName: string) {
-  return send(to, `Restaurante registrado — ${restaurantName}`, `
+  return sendSilent(to, `Restaurante registrado — ${restaurantName}`, `
     <h1 style="font-size:22px;font-weight:900;color:#18181b;margin:0 0 8px">¡Hola, ${ownerName}!</h1>
     <p style="color:#52525b;font-size:15px;margin:0 0 4px">Tu restaurante <strong>${restaurantName}</strong> fue registrado exitosamente.</p>
     <p style="color:#71717a;font-size:14px;margin:0 0 4px">Nuestro equipo revisará tu solicitud y recibirás un correo cuando sea aprobada.</p>
@@ -79,7 +93,7 @@ function itemsTable(items: OrderItem[]) {
   return `<table style="width:100%;border-collapse:collapse;margin:16px 0">${rows}</table>`
 }
 
-export function sendOrderConfirmation(to: string, data: {
+export function sendOrderConfirmation(to: string, data: { // fire-and-forget
   customerName: string
   restaurantName: string
   orderId: string
@@ -89,7 +103,7 @@ export function sendOrderConfirmation(to: string, data: {
   address?: string | null
 }) {
   const isDelivery = data.deliveryType === "DELIVERY"
-  return send(to, `Pedido recibido — ${data.restaurantName} 🛍️`, `
+  return sendSilent(to, `Pedido recibido — ${data.restaurantName} 🛍️`, `
     <h1 style="font-size:20px;font-weight:900;color:#18181b;margin:0 0 4px">¡Pedido recibido!</h1>
     <p style="color:#71717a;font-size:14px;margin:0 0 20px">
       Hola <strong>${data.customerName}</strong>, <strong>${data.restaurantName}</strong> ya recibió tu pedido.
@@ -119,7 +133,7 @@ export function sendNewOrderToRestaurant(to: string, data: {
   notes?: string | null
 }) {
   const isDelivery = data.deliveryType === "DELIVERY"
-  return send(to, `¡Nuevo pedido! 🛍️ — ${data.restaurantName}`, `
+  return sendSilent(to, `¡Nuevo pedido! 🛍️ — ${data.restaurantName}`, `
     <h1 style="font-size:20px;font-weight:900;color:#18181b;margin:0 0 4px">¡Tienes un nuevo pedido!</h1>
     <p style="color:#71717a;font-size:14px;margin:0 0 4px">
       Cliente: <strong>${data.customerName}</strong>${data.customerPhone ? ` · ${data.customerPhone}` : ""}
@@ -173,8 +187,8 @@ export function sendOrderStatusUpdate(to: string, data: {
   total: number
 }) {
   const info = STATUS_INFO[data.status]
-  if (!info) return Promise.resolve()
-  return send(to, info.subject, `
+  if (!info) return
+  return sendSilent(to, info.subject, `
     <h1 style="font-size:22px;margin:0 0 8px">${info.emoji} ${info.subject.replace(/ [^\s]+$/, "")}</h1>
     <p style="color:#52525b;font-size:15px;margin:0 0 4px">Hola <strong>${data.customerName}</strong>.</p>
     <p style="color:#71717a;font-size:14px;margin:0 0 4px">${info.msg}</p>

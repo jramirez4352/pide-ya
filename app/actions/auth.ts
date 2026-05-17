@@ -117,8 +117,15 @@ export async function requestPasswordReset(_: ActionState, formData: FormData): 
 
   try {
     await sendPasswordResetEmail(email, token)
-  } catch {
-    return { message: "Error al enviar el email. Intenta más tarde." }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : ""
+    if (msg.includes("EMAIL_USER") || msg.includes("EMAIL_PASS")) {
+      return { message: "El servidor no tiene el email configurado. Contacta al administrador." }
+    }
+    if (msg.includes("Invalid login") || msg.includes("Username and Password") || msg.includes("535")) {
+      return { message: "Credenciales de email incorrectas. Verifica EMAIL_USER y EMAIL_PASS en el servidor." }
+    }
+    return { message: "No se pudo enviar el email. Intenta más tarde." }
   }
 
   return { message: "Si ese email está registrado, recibirás un enlace en breve." }
