@@ -23,6 +23,11 @@ function LoginForm() {
           Restaurante registrado. Espera la aprobación del admin.
         </div>
       )}
+      {params.get("reset") === "1" && (
+        <div className="mb-5 rounded-2xl bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700 text-center">
+          Contraseña actualizada. Ya puedes iniciar sesión.
+        </div>
+      )}
 
       <form action={action} className="space-y-4">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
@@ -64,7 +69,12 @@ function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-zinc-500">
+      <p className="mt-4 text-center">
+        <Link href="/forgot-password" className="text-sm text-zinc-400 hover:text-orange-500 transition-colors">
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </p>
+      <p className="mt-3 text-center text-sm text-zinc-500">
         ¿No tienes cuenta?{" "}
         <Link href="/register" className="font-bold text-orange-500 hover:text-orange-600">
           Regístrate gratis

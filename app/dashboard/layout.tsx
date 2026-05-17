@@ -34,6 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {[
             { href: "/dashboard", label: "Pedidos", icon: "🛍️" },
             { href: "/dashboard/menu", label: "Menú", icon: "🍽️" },
+            { href: "/dashboard/stats", label: "Stats", icon: "📊" },
             { href: "/dashboard/schedule", label: "Horarios", icon: "🕐" },
             { href: "/dashboard/payments", label: "Pagos", icon: "💳" },
           ].map((item) => (

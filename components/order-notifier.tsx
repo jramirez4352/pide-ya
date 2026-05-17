@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation"
 
 export function OrderNotifier({ restaurantId }: { restaurantId: string }) {
   const router = useRouter()
-  const [newOrders, setNewOrders] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
   const lastCountRef = useRef<number | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    // Crear audio context para el sonido de notificación
     function playSound() {
       try {
         const ctx = new AudioContext()
@@ -30,12 +28,11 @@ export function OrderNotifier({ restaurantId }: { restaurantId: string }) {
 
     async function checkOrders() {
       try {
-        const res = await fetch(`/api/restaurant/pending-count?id=${restaurantId}`)
+        const res = await fetch(`/api/restaurant/pending-count?id=${restaurantId}`, { cache: "no-store" })
         if (!res.ok) return
         const { count } = await res.json()
         if (lastCountRef.current !== null && count > lastCountRef.current) {
           playSound()
-          setNewOrders(count)
           if (Notification.permission === "granted") {
             new Notification("¡Nuevo pedido! 🛍️", {
               body: `Tienes ${count} pedido${count !== 1 ? "s" : ""} pendiente${count !== 1 ? "s" : ""}`,
@@ -43,30 +40,32 @@ export function OrderNotifier({ restaurantId }: { restaurantId: string }) {
             })
           }
           router.refresh()
-        } else {
-          setNewOrders(count)
+        } else if (count !== lastCountRef.current) {
+          router.refresh()
         }
         lastCountRef.current = count
+        setPendingCount(count)
       } catch {}
     }
 
-    // Pedir permiso de notificaciones
     if (Notification.permission === "default") {
       Notification.requestPermission()
     }
 
     checkOrders()
-    const interval = setInterval(checkOrders, 30000) // cada 30 segundos
+    const interval = setInterval(checkOrders, 20000) // cada 20 segundos
     return () => clearInterval(interval)
   }, [restaurantId, router])
 
-  if (newOrders === 0) return null
+  if (pendingCount === 0) return null
 
   return (
     <div className="fixed top-16 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
-      <div className="bg-orange-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg shadow-orange-300 flex items-center gap-2 pointer-events-auto animate-bounce">
-        <span>🛍️</span>
-        {newOrders} pedido{newOrders !== 1 ? "s" : ""} pendiente{newOrders !== 1 ? "s" : ""}
+      <div className="bg-orange-500 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-lg shadow-orange-300 flex items-center gap-2 pointer-events-auto animate-bounce">
+        <span className="bg-white text-orange-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-black flex-shrink-0">
+          {pendingCount}
+        </span>
+        pedido{pendingCount !== 1 ? "s" : ""} nuevo{pendingCount !== 1 ? "s" : ""} esperando
       </div>
     </div>
   )

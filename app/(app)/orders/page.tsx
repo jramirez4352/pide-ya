@@ -1,6 +1,7 @@
 import { formatCOP } from "@/lib/currency"
 import { getMyOrders } from "@/app/actions/orders"
 import Link from "next/link"
+import { OrdersRefresher } from "@/components/orders-refresher"
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente", CONFIRMED: "Confirmado", PREPARING: "Preparando",
@@ -22,6 +23,7 @@ export default async function OrdersPage() {
     <div>
       <h1 className="text-xl font-black text-zinc-900 mb-5">Mis pedidos</h1>
 
+      {active.length > 0 && <OrdersRefresher />}
       {orders.length === 0 ? (
         <div className="text-center py-16 text-zinc-400">
           <p className="text-5xl mb-3">🛍️</p>

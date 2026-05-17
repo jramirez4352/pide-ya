@@ -6,6 +6,8 @@ import { db } from "@/lib/db"
 import { signIn } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { AuthError } from "next-auth"
+import { sendPasswordResetEmail } from "@/lib/email"
+import crypto from "node:crypto"
 
 const customerSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -93,4 +95,49 @@ export async function login(_: ActionState, formData: FormData): Promise<ActionS
     }
     throw error
   }
+}
+
+export async function requestPasswordReset(_: ActionState, formData: FormData): Promise<ActionState> {
+  const email = (formData.get("email") as string)?.trim().toLowerCase()
+  if (!email) return { message: "Ingresa tu email" }
+
+  const user = await db.user.findUnique({ where: { email } })
+  // Respuesta genérica para no revelar si el email existe
+  if (!user) return { message: "Si ese email está registrado, recibirás un enlace en breve." }
+
+  // Invalidar tokens anteriores
+  await db.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } })
+
+  const token = crypto.randomBytes(32).toString("hex")
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+  await db.passwordResetToken.create({ data: { userId: user.id, token, expiresAt } })
+
+  try {
+    await sendPasswordResetEmail(email, token)
+  } catch {
+    return { message: "Error al enviar el email. Intenta más tarde." }
+  }
+
+  return { message: "Si ese email está registrado, recibirás un enlace en breve." }
+}
+
+export async function resetPassword(_: ActionState, formData: FormData): Promise<ActionState> {
+  const token = (formData.get("token") as string)?.trim()
+  const password = (formData.get("password") as string)
+  const confirm = (formData.get("confirm") as string)
+
+  if (!token) return { message: "Token inválido" }
+  if (!password || password.length < 8) return { message: "La contraseña debe tener al menos 8 caracteres" }
+  if (password !== confirm) return { message: "Las contraseñas no coinciden" }
+
+  const record = await db.passwordResetToken.findUnique({ where: { token } })
+  if (!record || record.used || record.expiresAt < new Date()) {
+    return { message: "El enlace expiró o ya fue usado. Solicita uno nuevo." }
+  }
+
+  const hashed = await bcrypt.hash(password, 12)
+  await db.user.update({ where: { id: record.userId }, data: { password: hashed } })
+  await db.passwordResetToken.update({ where: { token }, data: { used: true } })
+
+  redirect("/login?reset=1")
 }
