@@ -21,7 +21,7 @@ type CartItem = {
   comment: string; modifiers: SelectedModifier[]
 }
 
-export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
+export function RestaurantMenu({ restaurant, rating }: { restaurant: Restaurant; rating?: { avg: number; count: number } }) {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
@@ -123,7 +123,15 @@ export function RestaurantMenu({ restaurant }: { restaurant: Restaurant }) {
           {restaurant.logoUrl ? <img src={restaurant.logoUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-2xl">🍴</span>}
         </div>
         <div>
-          <h1 className="text-xl font-black text-zinc-900">{restaurant.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-black text-zinc-900">{restaurant.name}</h1>
+            {rating && rating.count > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 text-xs font-bold text-amber-700">
+                ⭐ {(Math.round(rating.avg * 2) / 2).toFixed(1)}
+                <span className="text-amber-400 font-normal">({rating.count} reseña{rating.count !== 1 ? "s" : ""})</span>
+              </span>
+            )}
+          </div>
           {restaurant.description && <p className="text-sm text-zinc-500">{restaurant.description}</p>}
           {restaurant.openHours && <p className="text-xs text-zinc-400">🕐 {restaurant.openHours}</p>}
         </div>

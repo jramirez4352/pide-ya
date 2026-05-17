@@ -38,7 +38,7 @@ export default async function HomePage() {
     ? { status: "APPROVED", zones: { some: { id: user.zoneId } } }
     : { status: "APPROVED" }
 
-  const [restaurantsRaw, activeOrders, itemsRaw] = await Promise.all([
+  const [restaurantsRaw, activeOrders, itemsRaw, ratingsRaw] = await Promise.all([
     db.restaurant.findMany({
       where: restaurantWhere,
       orderBy: { createdAt: "desc" },
@@ -69,13 +69,26 @@ export default async function HomePage() {
       orderBy: { order: "asc" },
       take: 200,
     }) : Promise.resolve([]),
+    db.review.groupBy({
+      by: ["restaurantId"],
+      _avg: { rating: true },
+      _count: { rating: true },
+    }),
   ])
+
+  // Mapa de ratings por restaurante
+  const ratingMap = new Map(ratingsRaw.map(r => [
+    r.restaurantId,
+    { avg: r._avg.rating ?? 0, count: r._count.rating },
+  ]))
 
   // Formatear restaurantes
   const restaurants = restaurantsRaw.map(r => ({
     id: r.id, name: r.name, description: r.description,
     logoUrl: r.logoUrl, coverUrl: r.coverUrl, openHours: r.openHours,
     isOpen: r.isOpen, orderCount: r._count.orders,
+    rating: ratingMap.get(r.id)?.avg ?? 0,
+    reviewCount: ratingMap.get(r.id)?.count ?? 0,
   }))
 
   // Top 8 más solicitados (mínimo 1 pedido)

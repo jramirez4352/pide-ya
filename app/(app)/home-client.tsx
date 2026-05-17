@@ -7,7 +7,7 @@ import { formatCOP } from "@/lib/currency"
 type Restaurant = {
   id: string; name: string; description: string | null
   logoUrl: string | null; coverUrl: string | null; openHours: string | null
-  isOpen: boolean; orderCount: number
+  isOpen: boolean; orderCount: number; rating: number; reviewCount: number
 }
 
 type MenuItem = {
@@ -182,7 +182,10 @@ export function HomeClient({
                           </div>
                           <p className="font-bold text-xs text-zinc-900 leading-tight truncate">{r.name}</p>
                         </div>
-                        <p className="text-xs text-zinc-400">{r.orderCount} pedido{r.orderCount !== 1 ? "s" : ""}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-zinc-400">{r.orderCount} pedido{r.orderCount !== 1 ? "s" : ""}</p>
+                          {r.reviewCount > 0 && <RatingBadge rating={r.rating} count={r.reviewCount} small />}
+                        </div>
                       </div>
                     </Link>
                   ))}
@@ -226,7 +229,10 @@ export function HomeClient({
                       {r.logoUrl ? <img src={r.logoUrl} alt={r.name} className="w-full h-full object-cover" /> : <span className="text-2xl">🍴</span>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-zinc-900">{r.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-zinc-900 truncate">{r.name}</p>
+                        {r.reviewCount > 0 && <RatingBadge rating={r.rating} count={r.reviewCount} />}
+                      </div>
                       {r.description && <p className="text-xs text-zinc-400 truncate mt-0.5">{r.description}</p>}
                     </div>
                     <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -240,6 +246,16 @@ export function HomeClient({
         </>
       )}
     </div>
+  )
+}
+
+function RatingBadge({ rating, count, small }: { rating: number; count: number; small?: boolean }) {
+  const stars = Math.round(rating * 2) / 2
+  return (
+    <span className={`inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full font-bold text-amber-700 flex-shrink-0 ${small ? "text-xs px-1.5 py-0.5" : "text-xs px-2 py-0.5"}`}>
+      ⭐ {stars.toFixed(1)}
+      {!small && <span className="text-amber-400 font-normal">({count})</span>}
+    </span>
   )
 }
 
