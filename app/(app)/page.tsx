@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { formatCOP } from "@/lib/currency"
 import { ZonePicker } from "./zone-picker"
+import { HomeClient } from "./home-client"
 
 const STATUS_STEPS = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"]
 const STATUS_LABEL: Record<string, string> = {
@@ -33,12 +34,16 @@ export default async function HomePage() {
 
   const allZones = await db.zone.findMany({ where: { active: true }, orderBy: [{ city: "asc" }, { name: "asc" }] })
 
-  const restaurantFilter = user?.zoneId
+  const restaurantWhere = user?.zoneId
     ? { status: "APPROVED", zones: { some: { id: user.zoneId } } }
     : { status: "APPROVED" }
 
-  const [restaurants, activeOrders] = await Promise.all([
-    db.restaurant.findMany({ where: restaurantFilter, orderBy: { createdAt: "desc" } }),
+  const [restaurantsRaw, activeOrders, itemsRaw] = await Promise.all([
+    db.restaurant.findMany({
+      where: restaurantWhere,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { orders: true } } },
+    }),
     db.order.findMany({
       where: { customerId: session.user.id, status: { notIn: ["DELIVERED", "CANCELLED"] } },
       include: {
@@ -47,7 +52,55 @@ export default async function HomePage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    user?.zoneId ? db.menuItem.findMany({
+      where: {
+        available: true,
+        category: { restaurant: { ...restaurantWhere } },
+      },
+      select: {
+        id: true, name: true, description: true, price: true, imageUrl: true, available: true,
+        category: {
+          select: {
+            name: true,
+            restaurant: { select: { id: true, name: true, logoUrl: true, isOpen: true } },
+          },
+        },
+      },
+      orderBy: { order: "asc" },
+      take: 200,
+    }) : Promise.resolve([]),
   ])
+
+  // Formatear restaurantes
+  const restaurants = restaurantsRaw.map(r => ({
+    id: r.id, name: r.name, description: r.description,
+    logoUrl: r.logoUrl, coverUrl: r.coverUrl, openHours: r.openHours,
+    isOpen: r.isOpen, orderCount: r._count.orders,
+  }))
+
+  // Top 8 más solicitados (mínimo 1 pedido)
+  const topRestaurants = [...restaurants]
+    .filter(r => r.orderCount > 0)
+    .sort((a, b) => b.orderCount - a.orderCount)
+    .slice(0, 8)
+
+  // Formatear items con categoryName
+  const items = itemsRaw.map(i => ({
+    id: i.id, name: i.name, description: i.description,
+    price: i.price, imageUrl: i.imageUrl, available: i.available,
+    categoryName: i.category.name,
+    restaurant: i.category.restaurant,
+  }))
+
+  // Categorías únicas ordenadas por cantidad de platos disponibles
+  const catMap = new Map<string, number>()
+  items.filter(i => i.restaurant.isOpen).forEach(i => {
+    catMap.set(i.categoryName, (catMap.get(i.categoryName) ?? 0) + 1)
+  })
+  const categories = [...catMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, count]) => ({ name, count }))
 
   const firstName = user?.name?.split(" ")[0] ?? "allí"
 
@@ -108,53 +161,13 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* Restaurantes */}
-      {restaurants.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-20 h-20 rounded-3xl bg-orange-50 flex items-center justify-center mb-4">
-            <span className="text-4xl">🍽️</span>
-          </div>
-          <p className="font-semibold text-zinc-700">
-            {user?.zoneId ? "Sin restaurantes en tu zona" : "Selecciona tu zona para comenzar"}
-          </p>
-          <p className="text-sm text-zinc-400 mt-1">
-            {user?.zoneId ? "Pronto habrá más opciones en tu barrio" : "Elige tu barrio arriba para ver los restaurantes disponibles"}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">
-            {user?.zone ? `${restaurants.length} en ${user.zone.name}` : `${restaurants.length} restaurante${restaurants.length !== 1 ? "s" : ""}`}
-          </p>
-          {restaurants.map((r) => (
-            <Link key={r.id} href={`/restaurant/${r.id}`}
-              className="block bg-white rounded-3xl border border-zinc-100 overflow-hidden shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-[0.98]">
-              <div className="h-40 bg-gradient-to-br from-orange-100 to-orange-50 relative overflow-hidden">
-                {r.coverUrl
-                  ? <img src={r.coverUrl} alt={r.name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><span className="text-6xl opacity-30">🍽️</span></div>}
-                {r.openHours && (
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 text-xs font-medium text-zinc-600">
-                    {r.openHours}
-                  </div>
-                )}
-              </div>
-              <div className="p-4 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-md flex-shrink-0 bg-orange-50 flex items-center justify-center -mt-8 relative z-10">
-                  {r.logoUrl ? <img src={r.logoUrl} alt={r.name} className="w-full h-full object-cover" /> : <span className="text-2xl">🍴</span>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-zinc-900">{r.name}</p>
-                  {r.description && <p className="text-xs text-zinc-400 truncate mt-0.5">{r.description}</p>}
-                </div>
-                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
-                  <span className="text-orange-500 text-sm font-bold">›</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Contenido interactivo: buscador + categorías + restaurantes */}
+      <HomeClient
+        restaurants={restaurants}
+        topRestaurants={topRestaurants}
+        items={items}
+        categories={categories}
+      />
     </div>
   )
 }
