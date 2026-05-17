@@ -1,12 +1,22 @@
-"use client"
-
-import { useActionState } from "react"
-import Link from "next/link"
 import { requestPasswordReset } from "@/app/actions/auth"
+import Link from "next/link"
 
-export default function ForgotPasswordPage() {
-  const [state, action, pending] = useActionState(requestPasswordReset, undefined)
-  const sent = state?.message?.includes("breve")
+export default function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sent?: string; error?: string }>
+}) {
+  return <ForgotContent searchParamsPromise={searchParams} />
+}
+
+async function ForgotContent({
+  searchParamsPromise,
+}: {
+  searchParamsPromise: Promise<{ sent?: string; error?: string }>
+}) {
+  const params = await searchParamsPromise
+  const sent = params.sent === "1"
+  const error = params.error
 
   return (
     <>
@@ -22,14 +32,14 @@ export default function ForgotPasswordPage() {
         <div className="space-y-4">
           <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-4 text-sm text-green-700 text-center">
             <p className="font-bold mb-1">¡Revisa tu correo!</p>
-            <p>{state?.message}</p>
+            <p>Si ese email está registrado, recibirás un enlace en breve.</p>
           </div>
-          <Link href="/login" className="block w-full text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold rounded-2xl py-3.5 text-sm transition-colors">
+          <Link href="/login" className="block w-full text-center bg-zinc-100 text-zinc-700 font-bold rounded-2xl py-3.5 text-sm">
             Volver al login
           </Link>
         </div>
       ) : (
-        <form action={action} className="space-y-4">
+        <form action={requestPasswordReset} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Email de tu cuenta</label>
             <input
@@ -41,25 +51,22 @@ export default function ForgotPasswordPage() {
             />
           </div>
 
-          {state?.message && !sent && (
+          {error && (
             <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 text-center">
-              {state.message}
+              {decodeURIComponent(error)}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={pending}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl py-4 text-sm transition-colors disabled:opacity-60 shadow-lg shadow-orange-200"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl py-4 text-sm transition-colors shadow-lg shadow-orange-200"
           >
-            {pending ? "Enviando..." : "Enviar enlace"}
+            Enviar enlace
           </button>
 
-          <p className="text-center text-sm text-zinc-500">
-            <Link href="/login" className="font-bold text-orange-500 hover:text-orange-600">
-              ← Volver al login
-            </Link>
-          </p>
+          <a href="/login" className="block text-center text-sm text-zinc-400 font-medium py-2">
+            ← Volver al login
+          </a>
         </form>
       )}
     </>

@@ -100,19 +100,17 @@ export async function login(_: ActionState, formData: FormData): Promise<ActionS
   }
 }
 
-export async function requestPasswordReset(_: ActionState, formData: FormData): Promise<ActionState> {
+export async function requestPasswordReset(formData: FormData): Promise<void> {
   const email = (formData.get("email") as string)?.trim().toLowerCase()
-  if (!email) return { message: "Ingresa tu email" }
+  if (!email) redirect("/forgot-password?error=Ingresa+tu+email")
 
   const user = await db.user.findUnique({ where: { email } })
-  // Respuesta genérica para no revelar si el email existe
-  if (!user) return { message: "Si ese email está registrado, recibirás un enlace en breve." }
+  if (!user) redirect("/forgot-password?sent=1")
 
-  // Invalidar tokens anteriores
   await db.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } })
 
   const token = crypto.randomBytes(32).toString("hex")
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
   await db.passwordResetToken.create({ data: { userId: user.id, token, expiresAt } })
 
   try {
@@ -120,15 +118,15 @@ export async function requestPasswordReset(_: ActionState, formData: FormData): 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : ""
     if (msg.includes("EMAIL_USER") || msg.includes("EMAIL_PASS")) {
-      return { message: "El servidor no tiene el email configurado. Contacta al administrador." }
+      redirect("/forgot-password?error=El+email+no+está+configurado+en+el+servidor")
     }
-    if (msg.includes("Invalid login") || msg.includes("Username and Password") || msg.includes("535")) {
-      return { message: "Credenciales de email incorrectas. Verifica EMAIL_USER y EMAIL_PASS en el servidor." }
+    if (msg.includes("535") || msg.includes("Invalid login")) {
+      redirect("/forgot-password?error=Credenciales+de+email+incorrectas+en+el+servidor")
     }
-    return { message: "No se pudo enviar el email. Intenta más tarde." }
+    redirect("/forgot-password?error=No+se+pudo+enviar+el+email,+intenta+más+tarde")
   }
 
-  return { message: "Si ese email está registrado, recibirás un enlace en breve." }
+  redirect("/forgot-password?sent=1")
 }
 
 export async function resetPassword(_: ActionState, formData: FormData): Promise<ActionState> {
