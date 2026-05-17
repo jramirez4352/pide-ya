@@ -1,5 +1,6 @@
 import { formatCOP } from "@/lib/currency"
 import { getRestaurantOrders, updateOrderStatus } from "@/app/actions/restaurant"
+import { ProofImage } from "@/components/proof-image"
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente",
@@ -91,10 +92,10 @@ function OrderCard({ order, showHistory = false }: { order: Awaited<ReturnType<t
       </div>
 
       {order.proofUrl && (
-        <details className="text-xs">
-          <summary className="cursor-pointer text-zinc-500 hover:text-zinc-700">Ver comprobante</summary>
-          <img src={order.proofUrl} alt="Comprobante" className="mt-2 rounded-lg w-full max-h-48 object-contain border border-zinc-100" />
-        </details>
+        <div className="text-xs text-zinc-500 font-medium">
+          <p className="mb-1">💳 Comprobante de pago</p>
+          <ProofImage src={order.proofUrl} />
+        </div>
       )}
 
       {!showHistory && nextStatus && (
