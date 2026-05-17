@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { sendOrderStatusUpdate } from "@/lib/email"
 
 async function getRestaurant() {
   const session = await auth()
@@ -204,9 +205,19 @@ export async function getRestaurantOrders() {
 export async function updateOrderStatus(orderId: string, status: string) {
   const restaurant = await getRestaurant()
   if (!restaurant) return
-  await db.order.update({
+  const order = await db.order.update({
     where: { id: orderId, restaurantId: restaurant.id },
     data: { status },
+    include: {
+      customer: { select: { name: true, email: true } },
+      restaurant: { select: { name: true } },
+    },
   })
   revalidatePath("/dashboard")
+  sendOrderStatusUpdate(order.customer.email, {
+    customerName: order.customer.name,
+    restaurantName: order.restaurant.name,
+    status,
+    total: order.total,
+  })
 }

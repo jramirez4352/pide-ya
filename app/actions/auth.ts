@@ -6,7 +6,7 @@ import { db } from "@/lib/db"
 import { signIn } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { AuthError } from "next-auth"
-import { sendPasswordResetEmail } from "@/lib/email"
+import { sendPasswordResetEmail, sendWelcomeCustomer, sendWelcomeRestaurant } from "@/lib/email"
 import crypto from "node:crypto"
 
 const customerSchema = z.object({
@@ -42,6 +42,7 @@ export async function registerCustomer(_: ActionState, formData: FormData): Prom
 
   const hashed = await bcrypt.hash(password, 12)
   await db.user.create({ data: { name, email, password: hashed, phone, role: "CUSTOMER" } })
+  sendWelcomeCustomer(email, name)
 
   redirect("/login?registered=1")
 }
@@ -77,6 +78,8 @@ export async function registerRestaurant(_: ActionState, formData: FormData): Pr
       },
     },
   })
+
+  sendWelcomeRestaurant(email, name, restaurantName)
 
   redirect("/login?registered=2")
 }

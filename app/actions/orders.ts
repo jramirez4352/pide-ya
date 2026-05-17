@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db"
 import { auth } from "@/lib/auth"
+import { sendOrderConfirmation, sendNewOrderToRestaurant } from "@/lib/email"
 
 type CartItem = { id: string; name: string; price: number; quantity: number }
 
@@ -59,6 +60,38 @@ export async function placeOrder(formData: FormData) {
   // Incrementar contador de uso del código promo
   if (promoCodeId) {
     await db.promoCode.update({ where: { id: promoCodeId }, data: { usedCount: { increment: 1 } } })
+  }
+
+  // Emails — no bloqueamos el flujo si fallan
+  const [customer, restaurantFull] = await Promise.all([
+    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+    db.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { name: true, owner: { select: { email: true } } },
+    }),
+  ])
+
+  if (customer && restaurantFull) {
+    const emailItems = items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }))
+    sendOrderConfirmation(customer.email, {
+      customerName: customer.name,
+      restaurantName: restaurantFull.name,
+      orderId: restaurantId,
+      items: emailItems,
+      total,
+      deliveryType,
+      address,
+    })
+    sendNewOrderToRestaurant(restaurantFull.owner.email, {
+      restaurantName: restaurantFull.name,
+      customerName: customer.name,
+      customerPhone: null,
+      items: emailItems,
+      total,
+      deliveryType,
+      address,
+      notes,
+    })
   }
 
   return { success: true }
